@@ -2,15 +2,14 @@
 from copy import deepcopy
 import sys
 from constraint import Unary, Binary
-from backtracking import bt, is_consistent
+from backtracking import backtracking, CSP
 import operator
 from random import shuffle
 from itertools import product
 
-class AssignmentDecoder:
+class LinearAssignmentDecoder:
     def __init__(self, d):
         self.d = d
-        self.visited = []
 
     def decode(self, assignment):
         board = [0] * self.d
@@ -21,22 +20,31 @@ class AssignmentDecoder:
             i, j = int(k/10) - 1, k - (int(k/10) * 10) - 1
             board[i][j] = v
 
-        state = ''
         for row in board:
             for cell in row:
-                state += str(cell) + ' '
                 sys.stdout.write(str(cell) + ' ')
-        
-        if state in self.visited:
-            print("REVISITING")
-            sys.exit(1)
-        else:
-            self.visited.append(state)
-
         sys.stdout.write('\n')
 
-def is_complete(assignment):
-    return all(v != 0 for k, v in assignment.items())
+
+class BoardAssignmentDecoder:
+    def __init__(self, d):
+        self.d = d
+
+    def decode(self, assignment):
+        board = [0] * self.d
+        for i in range(self.d):
+            board[i] = [0] * self.d
+
+        for k, v in assignment.items():
+            i, j = int(k/10) - 1, k - (int(k/10) * 10) - 1
+            board[i][j] = v
+
+        for row in board:
+            for cell in row:
+                sys.stdout.write(str(cell) + ' ')
+            sys.stdout.write('\n')
+        sys.stdout.write('\n')
+
 
 class AssignmentManager:
     def __init__(self, assignment, domain, constraints):
@@ -49,12 +57,6 @@ class AssignmentManager:
             if self.unassigned[variable]:
                 return self.unassigned[variable].pop()
 
-def select_unassigned_vars(assignment, domain, constraints):
-    variables = []
-    for k, v in assignment.items():
-        if v == 0:
-            variables.append(k)
-    return variables
 
 def look_ahead(assignment, domain, constraints):
     options = {}
@@ -77,79 +79,50 @@ def look_ahead(assignment, domain, constraints):
     return variables
 
 
-def order_domain_values(assignment, domain, constraints, variable):
-    return domain
+
+
+
+
+
+def is_complete(csp, assignment):
+    return len(csp.variables) and len(assignment.keys())
+
+def first_unassigned_var(csp, assignment):
+    for k, v in assignment.items():
+        if v == 0:
+            return k
+
+def ordered_domain_values(csp, assignment, variable):
+    return cps.domains[variable]
+
+def unordered_domain_values(csp, assignment, variable):
+    shuffle(cps.domains[variable])
+
+def no_inference(self):
+    return True
+
+
+
 
 if __name__ == '__main__':
+
     
-    if len(sys.argv) == 2:
-        domain = []
-        constraints = []
-        assignment = {}
+    variables = []
+    domains = {}
+    constraints = []
+    assignment = {}
 
-        with open(sys.argv[-1], 'r') as f:
-            N = int(f.readline())
-            for n in range(N):
-                D, R = map(int, f.readline().split())
-                domain = [d for d in range(1, D + 1)]
-                
-
-                # restrições de coluna do problema
-                for c in range(D):
-                    min_var = 10 + (c + 1)
-                    max_var = 10 * (D + 1)
-                    for variable_1 in range(min_var, max_var, 10):
-                        for variable_2 in range(variable_1, max_var, 10):
-                            if variable_1 != variable_2:
-                                constraints.append(Binary(operator.ne, variable_1, variable_2))
-                
-                # restrições de linha do problema
-                for r in range(D):
-                    min_var = (r + 1) * 10 + 1
-                    max_var = min_var + D
-                    for variable_1 in range(min_var, max_var):
-                        for variable_2 in range(variable_1, max_var):
-                            if variable_1 != variable_2:
-                                constraints.append(Binary(operator.ne, variable_1, variable_2))
-
-                # restrições da instancia
-                for i in range(R):
-                    ai, aj, bi, bj = map(int, f.readline().split())
-                    variable_1 = ai * 10 + aj
-                    variable_2 = bi * 10 + bj
-                    constraints.append(Binary(operator.lt, variable_1, variable_2))
-
-                # atribuições iniciais
-                for i in range(D):
-                    row = list(map(int, f.readline().split()))
-                    for j in range(D):
-                        variable = (i + 1) * 10 + (j + 1)
-                        assignment[variable] = row[j]
-
-                        if row[j] > 0:
-                            constraints.append(Unary(operator.eq, variable, row[j]))
-
-                f.readline() # EOF
-
-                # print(domain)
-                # print(assignment)
-                # for c in constraints:
-                #     print(c)
-
-        result = bt(assignment, domain, constraints, is_complete, 
-        select_unassigned_vars,
-                    # AssignmentManager(assignment, domain, constraints).select,
-                    order_domain_values,
-                    AssignmentDecoder(D).decode)
-    else:
-        N = int(input())
+    with open('test_0.txt', 'r') as f:
+    # with open(sys.argv[-1], 'r') as f:
+        N = int(f.readline())
         for n in range(N):
+            D, R = map(int, f.readline().split())
 
-            D, R = map(int, input().split())
-
-            domain = [d for d in range(1, D + 1)]
-
-            constraints = []
+            for i in range(D):
+                for j in range(D):
+                    variable = int(str(i + 1) + str(j + 1))
+                    variables.append(variable)
+                    domains[variable] = [d for d in range(1, D + 1)]
 
             # restrições de coluna do problema
             for c in range(D):
@@ -171,39 +144,93 @@ if __name__ == '__main__':
 
             # restrições da instancia
             for i in range(R):
-                ai, aj, bi, bj = map(int, input().split())
+                ai, aj, bi, bj = map(int, f.readline().split())
                 variable_1 = ai * 10 + aj
                 variable_2 = bi * 10 + bj
                 constraints.append(Binary(operator.lt, variable_1, variable_2))
 
             # atribuições iniciais
-            assignment = {}
             for i in range(D):
-                row = list(map(int, input().split()))
+                row = list(map(int, f.readline().split()))
                 for j in range(D):
                     variable = (i + 1) * 10 + (j + 1)
-                    assignment[variable] = row[j]
-
                     if row[j] > 0:
+                        assignment[variable] = row[j]
                         constraints.append(Unary(operator.eq, variable, row[j]))
 
-            input() # EOF
+            f.readline() # EOF
+            
+            decoder = LinearAssignmentDecoder(D)
+            
+            csp = CSP(variables, domains, constraints)
+            result = backtracking(csp, assignment,
+                                  is_complete,
+                                  first_unassigned_var,
+                                  ordered_domain_values,
+                                  no_inference,
+                                  decoder.decode)
 
-            # print(domain)
-            # print(assignment)
-            # for c in constraints:
-            #     print(c)
+            if result:
+                decoder.decode(result)
+            else:
+                print('ERROR')
 
-            result = bt(assignment, domain, constraints, is_complete, 
-                        AssignmentManager(assignment, domain, constraints).select,
-                        order_domain_values,
-                        AssignmentDecoder(D).decode)
+# '"    N = int(input())
+# for n in range(N):
 
-            print(n + 1)
-            # if result:
-            #     decode_result(result, D)
-            # else:
-            #     print('ERROR')
-            # break
+#     D, R = map(int, input().split())
+
+#     domain = [d for d in range(1, D + 1)]
+
+#     constraints = []
+
+#     # restrições de coluna do problema
+#     for c in range(D):
+#         min_var = 10 + (c + 1)
+#         max_var = 10 * (D + 1)
+#         for variable_1 in range(min_var, max_var, 10):
+#             for variable_2 in range(variable_1, max_var, 10):
+#                 if variable_1 != variable_2:
+#                     constraints.append(Binary(operator.ne, variable_1, variable_2))
+    
+#     # restrições de linha do problema
+#     for r in range(D):
+#         min_var = (r + 1) * 10 + 1
+#         max_var = min_var + D
+#         for variable_1 in range(min_var, max_var):
+#             for variable_2 in range(variable_1, max_var):
+#                 if variable_1 != variable_2:
+#                     constraints.append(Binary(operator.ne, variable_1, variable_2))
+
+#     # restrições da instancia
+#     for i in range(R):
+#         ai, aj, bi, bj = map(int, input().split())
+#         variable_1 = ai * 10 + aj
+#         variable_2 = bi * 10 + bj
+#         constraints.append(Binary(operator.lt, variable_1, variable_2))
+
+#     # atribuições iniciais
+#     assignment = {}
+#     for i in range(D):
+#         row = list(map(int, input().split()))
+#         for j in range(D):
+#             variable = (i + 1) * 10 + (j + 1)
+#             if row[j] > 0:
+#                 assignment[variable] = row[j]
+#                 constraints.append(Unary(operator.eq, variable, row[j]))
+
+#     input() # EOF
+
+#     result = bt(assignment, domain, constraints, is_complete, 
+#                 first_unassigned_var,
+#                 order_domain_values,
+#                 AssignmentDecoder(D).decode)
+
+#     print(n + 1)
+#     if result:
+#         AssignmentDecoder(D).decode(result)
+#     else:
+#         print('ERROR')
+#     break"'
 
 
