@@ -1,5 +1,5 @@
 import operator
-
+import sys
 from backtracking import bt
 from constraint import Binary, Unary
 
@@ -9,7 +9,7 @@ class AssignmentDecoder:
         self.visited = []
 
     def decode(self, assignment):
-        for variable. value in assignment.items():
+        for variable, value in assignment.items():
             print(variable, value)
 
         sys.stdout.write('\n')
@@ -42,9 +42,10 @@ constraints = [
     Binary(operator.ne, 'WA', 'NT'),
     Binary(operator.ne, 'NT', 'Q'),
     Binary(operator.ne, 'Q', 'NSW'),
-    Binary(operator.ne, 'NSW', 'V')
+    Binary(operator.ne, 'NSW', 'V'),
+    Unary(operator.eq, 'SA', RED)
 ]
 
 print(bt(assignment, domain, constraints, is_complete, 
-                    select_unassigned_vars, order_domain_values,
-                    AssignmentDecoder(D).decode))
+         select_unassigned_vars, order_domain_values,
+         AssignmentDecoder(3).decode))

@@ -23,13 +23,15 @@ def bt(assignment, domain, constraints, is_complete,
     if debug_step:
         debug_step(assignment)
 
-    variable = select_unassigned_var(assignment, domain, constraints)
-    for value in order_domain_values(assignment, domain, constraints, variable):
-        if is_consistent(assignment, domain, constraints, variable, value):
-            assignment[variable] = value
-            result = bt(assignment, domain, constraints, is_complete, select_unassigned_var, order_domain_values, debug_step)
-            if result:
-                return result
-            assignment[variable] = null_value
+    for variable in  select_unassigned_var(assignment, domain, constraints):
+
+        for value in order_domain_values(assignment, domain, constraints, variable):
+            
+            if is_consistent(assignment, domain, constraints, variable, value):
+                assignment[variable] = value
+                result = bt(assignment, domain, constraints, is_complete, select_unassigned_var, order_domain_values, debug_step)
+                if result:
+                    return result
+                assignment[variable] = null_value
 
     return False
