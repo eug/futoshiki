@@ -2,120 +2,158 @@
 from copy import deepcopy
 import sys
 from constraint import Unary, Binary
-from backtracking import backtracking, CSP
+# from backtracking import backtracking, CSP
 import operator
 from random import shuffle
 from itertools import product
-
-class LinearAssignmentDecoder:
-    def __init__(self, d):
-        self.d = d
-
-    def decode(self, assignment):
-        board = [0] * self.d
-        for i in range(self.d):
-            board[i] = [0] * self.d
-
-        for k, v in assignment.items():
-            i, j = int(k/10) - 1, k - (int(k/10) * 10) - 1
-            board[i][j] = v
-
-        for row in board:
-            for cell in row:
-                sys.stdout.write(str(cell) + ' ')
-        sys.stdout.write('\n')
+from time import time
 
 
-class BoardAssignmentDecoder:
-    def __init__(self, d):
-        self.d = d
+def _parse_as_board(dimension, output):
+    board = [0] * dimension
+    for i in range(dimension):
+        board[i] = [0] * dimension
 
-    def decode(self, assignment):
-        board = [0] * self.d
-        for i in range(self.d):
-            board[i] = [0] * self.d
-
-        for k, v in assignment.items():
-            i, j = int(k/10) - 1, k - (int(k/10) * 10) - 1
-            board[i][j] = v
-
-        for row in board:
-            for cell in row:
-                sys.stdout.write(str(cell) + ' ')
-            sys.stdout.write('\n')
-        sys.stdout.write('\n')
-
-
-class AssignmentManager:
-    def __init__(self, assignment, domain, constraints):
-        self.unassigned = {}
-        for variable in assignment.keys():
-            self.unassigned[variable] = domain
-
-    def select(self, assignment, domain, constraints):
-        for variable in self.unassigned.keys():
-            if self.unassigned[variable]:
-                return self.unassigned[variable].pop()
-
-
-def look_ahead(assignment, domain, constraints):
-    options = {}
-
-    for variable, value in product(assignment.keys(), domain):
-        if variable not in options:
-            options[variable] = []
-        if is_consistent(assignment, domain, constraints, variable, value):
-            options[variable].append(value)
-
-    for variable, values in options.items():
-        if not values:
-            return []
-
-    variables = []
     for k, v in assignment.items():
-        if v == 0:
-            variables.append(k)
-    # shuffle(variables)
-    return variables
+        i, j = int(k/10) - 1, k - (int(k/10) * 10) - 1
+        board[i][j] = v
+    
+    return board
+
+def boardify_output(dimension, output):
+    if not output:
+        return " "
+
+    s = ""
+    for row in _parse_as_board(dimension, output):
+        for cell in row:
+            s += str(cell) + " "
+        s += "\n"
+
+    return s
+
+def stringfy_output(dimension, output):
+    if not output:
+        return " "
+
+    s = ""
+    for row in _parse_as_board(dimension, output):
+        for cell in row:
+            s += str(cell) + " "
+
+    return s
 
 
+# Definição de completude
+
+def total_assignment(csp, assignment):
+    return len(csp.variables) == len(assignment.keys())
 
 
-
-
-
-def is_complete(csp, assignment):
-    return len(csp.variables) and len(assignment.keys())
+# Ordem das variaveis
 
 def first_unassigned_var(csp, assignment):
-    for k, v in assignment.items():
-        if v == 0:
-            return k
+    for variable in csp.variables:
+        if variable not in assignment:
+            return variable
+
+def mrv_r(csp, assignment):
+    """ Heuristica: Minimum-remaining-values
+        Desempate: Aleatoriamente """
+
+    def count_valid_values(variable):
+        """ Conta o numero de valores validos da variavel """
+        return sum(csp.is_consistent(assignment, variable, value) for value in csp.domains[variable])
+
+    def random_unassigned_variables():
+        """ Retorna variaveis remanescentes aleatoriamente """
+        variables = [v for v in csp.variables if v not in assignment]
+        shuffle(variables)
+        return variables
+
+    return min(random_unassigned_variables(), key=count_valid_values)
+
+
+def mrv_d(csp, assignment):
+    """ Heuristica: Minimum-remaining-values
+        Desempate: Maior Grau de Restrição  """
+
+    def count_valid_values(variable):
+        """ Conta o numero de valores validos da variavel """
+        return sum(csp.is_consistent(assignment, variable, value) for value in csp.domains[variable])
+
+    def degree_unassigned_variables():
+        """ Retorna variaveis com maior grau de restrição """
+        vars_degree = {}
+        max_degree = 0
+
+        for var in csp.variables:
+            if var not in assignment:
+                degree = len(csp.variable_constraints[var])
+                vars_degree[var] = degree
+                if degree > max_degree:
+                    max_degree = degree
+
+        return [k for k, v in vars_degree.items() if v == max_degree]
+
+    return min(degree_unassigned_variables(), key=count_valid_values)
+
+
+# Ordem dos valores
 
 def ordered_domain_values(csp, assignment, variable):
-    return cps.domains[variable]
+    """ Método: Ordenado (ORD)"""
+    return csp.domains[variable]
 
 def unordered_domain_values(csp, assignment, variable):
-    shuffle(cps.domains[variable])
+    """ Método: Embaralhado (RND) """
+    shuffle(csp.domains[variable])
 
-def no_inference(self):
+def lcv(csp, assignment, variable):
+    """ Método: Least-constraining-values (LCV) """
+    def count_conflicts(value):
+        csp.assign(assignment, variable, value)
+        conflicts = sum(1 for c in csp.variable_constraints[variable] if not c.eval(assignment))
+        csp.unassign(assignment, variable)
+        return conflicts
+
+    return sorted(csp.domains[variable], key=count_conflicts)
+
+
+
+# Inferencia
+
+def no_inference(csp, assignment, variable, value, censured):
+    return True
+
+
+def forward_checking(csp, assignment, variable, value, censured):
+    for N in csp.variable_neighbors[variable]:
+        if N not in assignment:
+            for n in csp.domains[N]:
+                if not csp.is_consistent(assignment, N, n):
+                    csp.domains[N].remove(n)
+                    if censured is not None:
+                        censured.append((N, n))
+            if not csp.domains[N]:
+                return False
     return True
 
 
 
+def read_file(filename):
+    instances = []
 
-if __name__ == '__main__':
+    with open(filename, 'r') as f:
 
-    
-    variables = []
-    domains = {}
-    constraints = []
-    assignment = {}
-
-    with open('test_0.txt', 'r') as f:
-    # with open(sys.argv[-1], 'r') as f:
         N = int(f.readline())
+
         for n in range(N):
+
+            variables = []
+            domains = {}
+            constraints = []
+            assignment = {}
             D, R = map(int, f.readline().split())
 
             for i in range(D):
@@ -159,78 +197,29 @@ if __name__ == '__main__':
                         constraints.append(Unary(operator.eq, variable, row[j]))
 
             f.readline() # EOF
-            
-            decoder = LinearAssignmentDecoder(D)
-            
-            csp = CSP(variables, domains, constraints)
-            result = backtracking(csp, assignment,
-                                  is_complete,
-                                  first_unassigned_var,
-                                  ordered_domain_values,
-                                  no_inference,
-                                  decoder.decode)
-
-            if result:
-                decoder.decode(result)
-            else:
-                print('ERROR')
-
-# '"    N = int(input())
-# for n in range(N):
-
-#     D, R = map(int, input().split())
-
-#     domain = [d for d in range(1, D + 1)]
-
-#     constraints = []
-
-#     # restrições de coluna do problema
-#     for c in range(D):
-#         min_var = 10 + (c + 1)
-#         max_var = 10 * (D + 1)
-#         for variable_1 in range(min_var, max_var, 10):
-#             for variable_2 in range(variable_1, max_var, 10):
-#                 if variable_1 != variable_2:
-#                     constraints.append(Binary(operator.ne, variable_1, variable_2))
     
-#     # restrições de linha do problema
-#     for r in range(D):
-#         min_var = (r + 1) * 10 + 1
-#         max_var = min_var + D
-#         for variable_1 in range(min_var, max_var):
-#             for variable_2 in range(variable_1, max_var):
-#                 if variable_1 != variable_2:
-#                     constraints.append(Binary(operator.ne, variable_1, variable_2))
+            instances.append((variables, domains, constraints, assignment, D, r, n))
 
-#     # restrições da instancia
-#     for i in range(R):
-#         ai, aj, bi, bj = map(int, input().split())
-#         variable_1 = ai * 10 + aj
-#         variable_2 = bi * 10 + bj
-#         constraints.append(Binary(operator.lt, variable_1, variable_2))
-
-#     # atribuições iniciais
-#     assignment = {}
-#     for i in range(D):
-#         row = list(map(int, input().split()))
-#         for j in range(D):
-#             variable = (i + 1) * 10 + (j + 1)
-#             if row[j] > 0:
-#                 assignment[variable] = row[j]
-#                 constraints.append(Unary(operator.eq, variable, row[j]))
-
-#     input() # EOF
-
-#     result = bt(assignment, domain, constraints, is_complete, 
-#                 first_unassigned_var,
-#                 order_domain_values,
-#                 AssignmentDecoder(D).decode)
-
-#     print(n + 1)
-#     if result:
-#         AssignmentDecoder(D).decode(result)
-#     else:
-#         print('ERROR')
-#     break"'
+        return instances
 
 
+from backtracking import Backtracking
+
+if __name__ == '__main__':
+    instances = read_file('futoshiki_all.txt')
+
+    for variables, domains, constraints, assignment, D, r, n in instances:
+        try:
+            bt = Backtracking(variables, domains, constraints)
+            bt.set_is_complete(total_assignment)
+            bt.set_variable_selection(mrv_d)
+            bt.set_value_selection(lcv)
+            bt.set_look_ahead(forward_checking)
+            start = time()
+            output = bt.solve(assignment)
+            t = time() - start
+            result = stringfy_output(D, output)
+            nassigns = bt.csp.nassigns
+        except KeyboardInterrupt:
+            nassigns = ' '
+        print ("{},{},{},{},{:.2f},{}".format(n, D, r, nassigns, t, result))

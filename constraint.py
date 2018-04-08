@@ -2,8 +2,8 @@
 import operator
 
 class Constraint:
-    def __init__(self, op, arg1, arg2, null_value=0):
-        self.op, self.arg1, self.arg2, self.null_value = op, arg1, arg2, null_value
+    def __init__(self, op, arg1, arg2):
+        self.op, self.arg1, self.arg2 = op, arg1, arg2
 
     def eval(self, A):
         """ Retorna False se violar a restrição, True caso contrario"""
@@ -18,7 +18,7 @@ class Binary(Constraint):
         super().__init__(op, variable_1, variable_2)
 
     def eval(self, A):
-        if A[self.arg1] == self.null_value or A[self.arg2] == self.null_value:
+        if (self.arg1 not in A) or (self.arg2 not in A):
             return True
         return self.op(A[self.arg1], A[self.arg2])
 
@@ -30,7 +30,7 @@ class Unary(Constraint):
         super().__init__(op, variable, domain_value)
 
     def eval(self, A):
-        if A[self.arg1] == self.null_value:
+        if self.arg1 not in A:
             return True
         return self.op(A[self.arg1], self.arg2)
 
