@@ -7,6 +7,7 @@ import operator
 from random import shuffle
 from itertools import product
 from time import time
+from backtracking import Backtracking
 
 
 def _parse_as_board(dimension, output):
@@ -202,9 +203,6 @@ def read_file(filename):
 
         return instances
 
-
-from backtracking import Backtracking
-
 if __name__ == '__main__':
     instances = read_file('futoshiki_all.txt')
 
@@ -222,4 +220,6 @@ if __name__ == '__main__':
             nassigns = bt.csp.nassigns
         except KeyboardInterrupt:
             nassigns = ' '
+            result = ' '
+
         print ("{},{},{},{},{:.2f},{}".format(n, D, r, nassigns, t, result))

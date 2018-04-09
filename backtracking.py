@@ -106,6 +106,9 @@ class Backtracking:
 
         variable = self.select_unassigned_var(self.csp, assignment)
 
+        if not variable:
+            return False
+        print(assignment)
         for value in self.order_domain_values(self.csp, assignment, variable):
             if self.csp.is_consistent(assignment, variable, value):
                 self.csp.assign(assignment, variable, value, do_count=True)

@@ -1,41 +1,77 @@
 import operator
 import sys
-from backtracking import bt
+from backtracking import Backtracking
 from constraint import Binary, Unary
+from heuristics import *
+from time import time
 
-NQUEENS = 4
+def _parse_as_board(dimension, output):
+    board = [0] * dimension
+    for i in range(dimension):
+        board[i] = [0] * dimension
 
-def decode_result(result):
-    board = [] * NQUEENS
-    for k, v in result.items():
+    for k, v in assignment.items():
         i, j = int(k/10) - 1, k - (int(k/10) * 10) - 1
-        print(i, j)
-        if len(board[i]) == 0:
-            board[i] = [] * NQUEENS
-
         board[i][j] = v
+    
+    return board
 
-    for row in board:
+def boardify_output(dimension, output):
+    if not output:
+        return " "
+
+    s = ""
+    for row in _parse_as_board(dimension, output):
         for cell in row:
-            sys.stdout.write(cell + ' ')
-        sys.stdout.write('\n')
+            s += str(cell) + " "
+        s += "\n"
+
+    return s
 
 
-def is_complete(assignment):
-    pass
+def total_assignment(csp, assignment):
+    return NQUEENS == len(assignment.keys())
 
+
+def unique_assignment(csp, assignment):
+    uniques = []
+
+    for i in range(1, len(csp.variables)):
+        rvalues = [v for v in csp.variables if v >= (i * 10) and v < ((i + 1) * 10) ]
+        cvalues = [v for v in csp.variables if v % 10 == i]
+
+        rsum = sum(v for v in rvalues)
+        csum = sum(1 for v in cvalues)
+
+        uniques.append(rsum > 0 and rsum == csum)
+
+    return sum(uniques) == 1
+
+def nqueens_selection(csp, assignment):
+    candidates = []
+    for var in csp.variables:
+        if var not in assignment:
+            for val in csp.domains[var]:
+                if csp.is_consistent(assignment, var, val):
+                    candidates.append(var)
+    if candidates:
+        return candidates[0]
 
 
 
 # initialization
-domain = [q + 1 for q in range(1, NQUEENS)]
-assignment = {}
+NQUEENS = 4
+variables = []
+domains = {}
 constraints = []
+assignment = {}
 
 # encode board
 for i in range(NQUEENS):
     for j in range(NQUEENS):
-        assignment[int(str(i+1) + str(j+1))] = 0
+        variable = int(str(i+1) + str(j+1))
+        variables.append(variable)
+        domains[variable] = [1]
 
 # create column constraints
 for c in range(NQUEENS):
@@ -90,5 +126,16 @@ constraints.append(Binary(operator.ne, 22, 31))
 constraints.append(Binary(operator.ne, 12, 21))
 
 
+# solve
+bt = Backtracking(variables, domains, constraints)
+bt.set_is_complete(total_assignment)
+bt.set_variable_selection(nqueens_selection)
+bt.set_value_selection(ordered_domain_values)
+bt.set_look_ahead(no_inference)
+start = time()
+output = bt.solve(assignment)
+t = time() - start
+result = boardify_output(NQUEENS, output)
+nassigns = bt.csp.nassigns
 
-print(bt(assignment, domain, constraints))
+print(bt.solve(assignment))
