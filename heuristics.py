@@ -49,8 +49,6 @@ def mrv_d(csp, assignment):
     return min(degree_unassigned_variables(), key=count_valid_values)
 
 
-
-
 # Ordem dos valores
 
 def ordered_domain_values(csp, assignment, variable):
@@ -72,14 +70,14 @@ def lcv(csp, assignment, variable):
     return sorted(csp.domains[variable], key=count_conflicts)
 
 
-
 # Inferencia
 
 def no_inference(csp, assignment, variable, value, censured):
+    """ Nenhuma inferencia é aplicada """
     return True
 
-
 def forward_checking(csp, assignment, variable, value, censured):
+    """ Aplica a inferencia de Checar Adiante """
     for N in csp.variable_neighbors[variable]:
         if N not in assignment:
             for n in csp.domains[N]:

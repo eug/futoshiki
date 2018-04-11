@@ -5,14 +5,15 @@ from constraint import Binary, Unary
 
 
 class CSP:
-    def __init__(self, variables, domains, constraints):
+    def __init__(self, variables, domains, constraints, max_assigns=-1):
         self.variables = variables
         self.domains = domains
         self.constraints = constraints
+        self.max_assigns = max_assigns
 
         # stats
         self.nassigns = 0
-
+        
         # optimisation
         self.variable_constraints = {}
         self.variable_neighbors = {}
@@ -67,16 +68,16 @@ class CSP:
 
 
 class Backtracking:
-    def __init__(self, variables, domains, constraints):
-        self.csp = CSP(variables, domains, constraints)
+    def __init__(self, variables, domains, constraints, max_assigns=-1):
+        self.csp = CSP(variables, domains, constraints, max_assigns)
         self.is_complete = None
         self.select_unassigned_var = None
         self.order_domain_values = None
         self.look_ahead = None
-    
+
     def set_variable_selection(self, callback):
         self.select_unassigned_var = callback
-    
+
     def set_value_selection(self, callback):
         self.order_domain_values = callback
     
@@ -89,7 +90,7 @@ class Backtracking:
     def solve(self, assignment):
         self._ensure_callbacks()
         return self._bt(assignment)
-    
+
     def _ensure_callbacks(self):
         if not self.select_unassigned_var or\
            not self.order_domain_values or\
@@ -104,11 +105,15 @@ class Backtracking:
         # if debug_step:
         #     debug_step(assignment)
 
+        if self.csp.max_assigns > -1 and \
+           self.csp.nassigns >= self.csp.max_assigns:
+            return False
+
         variable = self.select_unassigned_var(self.csp, assignment)
 
         if not variable:
             return False
-        print(assignment)
+
         for value in self.order_domain_values(self.csp, assignment, variable):
             if self.csp.is_consistent(assignment, variable, value):
                 self.csp.assign(assignment, variable, value, do_count=True)
@@ -118,41 +123,7 @@ class Backtracking:
                     if result:
                         return result
                 self.csp.absolve(censured)
+
         self.csp.unassign(assignment, variable)
+
         return False
-
-
-
-
-
-
-# def backtracking(csp, assignment,
-#                  is_complete,
-#                  select_unassigned_var,
-#                  order_domain_values,
-#                  inference,
-#                  debug_step=None,
-#                  null_value=0):
-
-#     def bt(assignment):
-#         if is_complete(csp, assignment):
-#             return assignment
-
-#         if debug_step:
-#             debug_step(assignment)
-
-#         variable = select_unassigned_var(csp, assignment)
-
-#         for value in order_domain_values(csp, assignment, variable):
-#             if csp.is_consistent(assignment, variable, value):
-#                 csp.assign(assignment, variable, value)
-#                 censured = csp.censure(variable, value)
-#                 if inference(csp, assignment, variable, value, censured):
-#                     result = bt(assignment)
-#                     if result:
-#                         return result
-#                 csp.absolve(censured)
-#         csp.unassign(assignment, variable)
-#         return False
-
-#     return bt(assignment)
