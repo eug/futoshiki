@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
+import getopt
 import operator
+import sys
 from random import shuffle
 from time import time
 
@@ -7,48 +9,60 @@ from backtracking import Backtracking
 from constraint import Binary, Unary
 from heuristics import *
 
-# Decodificação da Saida
 
-def _parse_as_board(dimension, output):
-    board = [0] * dimension
-    for i in range(dimension):
-        board[i] = [0] * dimension
-
-    for k, v in assignment.items():
-        i, j = int(k/10) - 1, k - (int(k/10) * 10) - 1
-        board[i][j] = v
-    
-    return board
-
-def boardify_output(dimension, output):
-    if not output:
-        return " "
-
-    s = ""
-    for row in _parse_as_board(dimension, output):
-        for cell in row:
-            s += str(cell) + " "
-        s += "\n"
-
-    return s
-
-def stringfy_output(dimension, output):
-    if not output:
-        return " "
-
-    s = ""
-    for row in _parse_as_board(dimension, output):
-        for cell in row:
-            s += str(cell) + " "
-
-    return s
+class Config:
+    input_file = None
+    variable_selection = None
+    value_selection = None
+    look_ahead = None
+    output_as_csv = False
+    show_help = False
 
 
-# Definição de completude
+def parse_args(argv):
+    shortopts = 'f:r:l:a:ch'
 
-def total_assignment(csp, assignment):
-    return len(csp.variables) == len(assignment.keys())
+    longopts = [
+        'input-file=',
+        'var-selection=',
+        'val-selection=',
+        'look-ahead=',
+        'as-csv',
+        'help'
+    ]
 
+    arg_fn_map = {
+        'fuv': first_unassigned_var,
+        'mrvr': mrv_r,
+        'mrvd': mrv_d,
+        'odv': ordered_domain_values,
+        'rdv': random_domain_values,
+        'lcv': lcv,
+        'dla': dont_look_ahead,
+        'fwc': forward_checking
+    }
+
+    config = Config()
+    options, _ = getopt.getopt(sys.argv[1:], shortopts, longopts)
+
+    for opt, arg in options:
+        if opt in ('-f', '--input-file'):
+            config.input_file = arg
+        elif opt in ('-c', '--as-csv'):
+            config.output_as_csv = True
+        elif opt in ('-h', '--help'):
+            config.show_help = True
+        elif opt in ('-r', '--var-selection'):
+            if arg in ('fuv', 'mrvr', 'mrvd'):
+                config.variable_selection = arg_fn_map[arg]
+        elif opt in ('-l', '--val-selection'):
+            if arg in ('odv', 'rdv', 'lcv'):
+                config.value_selection = arg_fn_map[arg]
+        elif opt in ('-a', '--look-ahead'):
+            if arg in ('dla', 'fwc'):
+                config.look_ahead = arg_fn_map[arg]
+
+    return config
 
 def read_file(filename):
     instances = []
@@ -111,23 +125,126 @@ def read_file(filename):
 
         return instances
 
+def print_help():
+    print("""Futoshiki Solver
+Usage:
+    python futoshiki.py -f futoshiki_all.txt -r fuv -l odv -a dla
+    python futoshiki.py -f futoshiki_all.txt -r mrvr -l lcv -a fwc -c
+
+Options:
+    -f --input-file=FILE                Instances file
+    -r --var-selection=[fuv|mrvr|mrvd]  Variable selection algorithm
+    -l --val-selection=[odv|rdv|lcv]    Value selection algorithms
+    -a --look-ahead=[dla|fwc]           Look ahead algorithm
+    -c --as-csv                         Print the results line-by-line (csv-style)
+    -h --help                           Print this message
+
+Variable Selection Heuristics:
+    fuv     First Unassignment Variable
+    mrvr    Minimum-Remaining-Values (Random tie breaker)
+    mrvd    Minimum-Remaining-Values (Maximum-Restriction-Degree tie breaker)
+
+Value Selection Heuristics:
+    odv     Ordered-Domain-Values
+    rdv     Random-Domain-Values
+    lcv     Least-Constraining-Values
+
+Look Ahead Heuristics:
+    dla     Don't Look Ahead
+    fwc     Forward Checking
+    """)
+
+def _parse_as_board(dimension, output):
+    board = [0] * dimension
+    for i in range(dimension):
+        board[i] = [0] * dimension
+
+    for k, v in output.items():
+        i, j = int(k/10) - 1, k - (int(k/10) * 10) - 1
+        board[i][j] = v
+    
+    return board
+
+def boardify_output(dimension, output):
+    if not output:
+        return " "
+
+    s = ""
+    for row in _parse_as_board(dimension, output):
+        for cell in row:
+            s += str(cell) + " "
+        s += "\n"
+
+    return s
+
+def stringfy_output(dimension, output):
+    if not output:
+        return " "
+
+    s = ""
+    for row in _parse_as_board(dimension, output):
+        for cell in row:
+            s += str(cell) + " "
+
+    return s
+
+
 if __name__ == '__main__':
-    instances = read_file('futoshiki_all.txt')
+
+    if len(sys.argv) <= 1:
+        print('Faltando argumentos')
+        sys.exit(1)
+
+    config = parse_args(sys.argv[1:])
+
+    if config.show_help:
+        print_help()
+        sys.exit(0)
+
+    if not config.input_file:
+        print('Arquivo de entrada não especificado')
+        sys.exit(1)
+
+    if not config.variable_selection:
+        print('Algoritmo de seleção de variavel não especificado')
+        sys.exit(1)
+    
+    if not config.value_selection:
+        print('Algoritmo de seleção de valor não especificado')
+        sys.exit(1)
+
+    if not config.look_ahead:
+        print('Algoritmo de inferencia não especificado')
+        sys.exit(1)
+    
+    instances = read_file(config.input_file)
 
     for variables, domains, constraints, assignment, D, r, n in instances:
         try:
             bt = Backtracking(variables, domains, constraints, 1000000)
             bt.set_is_complete(total_assignment)
-            bt.set_variable_selection(mrv_d)
-            bt.set_value_selection(lcv)
-            bt.set_look_ahead(forward_checking)
+            bt.set_variable_selection(config.variable_selection)
+            bt.set_value_selection(config.value_selection)
+            bt.set_look_ahead(config.look_ahead)
+
             start = time()
             output = bt.solve(assignment)
             t = time() - start
-            result = stringfy_output(D, output)
+
             nassigns = bt.csp.nassigns
         except KeyboardInterrupt:
-            nassigns = ' '
-            result = ' '
+            output = None
 
-        print ("{},{},{},{},{:.2f},{}".format(n + 1, D, r, nassigns, t, result))
+        if nassigns == 1000000:
+            print(n + 1)
+            print('Numero de atribuições excede limite maximo')
+
+        if config.output_as_csv:
+            if output:
+                result = stringfy_output(D, output)
+                print ("{},{},{},{},{:.2f},{}".format(n + 1, D, r, nassigns, t, result))
+            else:
+                print ("{},{},{},{},{:.2f},".format(n + 1, D, r, nassigns, t))
+        else:
+            print(n + 1)
+            print(boardify_output(D, output))

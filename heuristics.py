@@ -1,5 +1,10 @@
 from random import shuffle
 
+# Definição de completude
+
+def total_assignment(csp, assignment):
+    return len(csp.variables) == len(assignment.keys())
+
 # Ordem das variaveis
 
 def first_unassigned_var(csp, assignment):
@@ -13,7 +18,8 @@ def mrv_r(csp, assignment):
 
     def count_valid_values(variable):
         """ Conta o numero de valores validos da variavel """
-        return sum(csp.is_consistent(assignment, variable, value) for value in csp.domains[variable])
+        return sum(csp.is_consistent(assignment, variable, value) \
+                   for value in csp.domains[variable])
 
     def random_unassigned_variables():
         """ Retorna variaveis remanescentes aleatoriamente """
@@ -30,7 +36,8 @@ def mrv_d(csp, assignment):
 
     def count_valid_values(variable):
         """ Conta o numero de valores validos da variavel """
-        return sum(csp.is_consistent(assignment, variable, value) for value in csp.domains[variable])
+        return sum(csp.is_consistent(assignment, variable, value) \
+                   for value in csp.domains[variable])
 
     def degree_unassigned_variables():
         """ Retorna variaveis com maior grau de restrição """
@@ -55,7 +62,7 @@ def ordered_domain_values(csp, assignment, variable):
     """ Método: Ordenado (ORD)"""
     return csp.domains[variable]
 
-def unordered_domain_values(csp, assignment, variable):
+def random_domain_values(csp, assignment, variable):
     """ Método: Embaralhado (RND) """
     shuffle(csp.domains[variable])
 
@@ -63,7 +70,8 @@ def lcv(csp, assignment, variable):
     """ Método: Least-constraining-values (LCV) """
     def count_conflicts(value):
         csp.assign(assignment, variable, value)
-        conflicts = sum(1 for c in csp.variable_constraints[variable] if not c.eval(assignment))
+        conflicts = sum(1 for c in csp.variable_constraints[variable] \
+                        if not c.eval(assignment))
         csp.unassign(assignment, variable)
         return conflicts
 
@@ -72,7 +80,7 @@ def lcv(csp, assignment, variable):
 
 # Inferencia
 
-def no_inference(csp, assignment, variable, value, censured):
+def dont_look_ahead(csp, assignment, variable, value, censured):
     """ Nenhuma inferencia é aplicada """
     return True
 
