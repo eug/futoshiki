@@ -98,16 +98,15 @@ class Backtracking:
            not self.look_ahead:
             raise Exception()
 
+    def _can_assign(self):
+        return self.csp.max_assigns > -1 and self.csp.nassigns + 1 < self.csp.max_assigns
+
     def _bt(self, assignment):
         if self.is_complete(self.csp, assignment):
             return assignment
 
         # if debug_step:
         #     debug_step(assignment)
-
-        if self.csp.max_assigns > -1 and \
-           self.csp.nassigns >= self.csp.max_assigns:
-            return False
 
         variable = self.select_unassigned_var(self.csp, assignment)
 
@@ -116,8 +115,14 @@ class Backtracking:
 
         for value in self.order_domain_values(self.csp, assignment, variable):
             if self.csp.is_consistent(assignment, variable, value):
+
+                if not self._can_assign():
+                    return False
+
                 self.csp.assign(assignment, variable, value, do_count=True)
+
                 censured = self.csp.censure(variable, value)
+
                 if self.look_ahead(self.csp, assignment, variable, value, censured):
                     result = self._bt(assignment)
                     if result:
