@@ -31,7 +31,6 @@ class CSP:
                 elif isinstance(c, Unary) and v == a:
                     self.variable_constraints[v].append(c)
 
-
     def assign(self, assignment, variable, value, do_count=False):
         """ Adiciona uma variável-valor nas atribuições """
         assignment[variable] = value
@@ -44,7 +43,8 @@ class CSP:
             del assignment[variable]
 
     def is_consistent(self, assignment, variable, value):
-        """ Verifica se a atribuição do valor na variavel é valida com todas restrições """
+        """ Verifica se a atribuição do valor na variavel é
+            valida com todas restrições """
         self.assign(assignment, variable, value)
 
         for constraint in self.variable_constraints[variable]:
@@ -55,15 +55,16 @@ class CSP:
         self.unassign(assignment, variable)
         return True
 
-    def censure(self, variable, value):
-        """ Remove todos possiveis valores do dominio da variavel, exceto o valor atual """
+    def prune(self, variable, value):
+        """ Remove todos possiveis valores do dominio
+            da variavel, exceto o valor atual """
         removals = [(variable, d) for d in self.domains[variable] if d != value]
         self.domains[variable] = [value]
         return removals
 
-    def absolve(self, censured):
-        """ Adiciona os items censurados no dominio da variável """
-        for variable, value in censured:
+    def unprune(self, pruned):
+        """ Adiciona os items podados no dominio da variável """
+        for variable, value in pruned:
             self.domains[variable].append(value)
 
 
@@ -99,14 +100,12 @@ class Backtracking:
             raise Exception()
 
     def _can_assign(self):
-        return self.csp.max_assigns > -1 and self.csp.nassigns + 1 < self.csp.max_assigns
+        return self.csp.max_assigns > -1 and \
+               self.csp.nassigns + 1 < self.csp.max_assigns
 
     def _bt(self, assignment):
         if self.is_complete(self.csp, assignment):
             return assignment
-
-        # if debug_step:
-        #     debug_step(assignment)
 
         variable = self.select_unassigned_var(self.csp, assignment)
 
@@ -114,20 +113,27 @@ class Backtracking:
             return False
 
         for value in self.order_domain_values(self.csp, assignment, variable):
+
+            # Verifica se a atribuição é consistente
             if self.csp.is_consistent(assignment, variable, value):
 
+                # Verifica se não excedeu o limite de atribuições
                 if not self._can_assign():
                     return False
 
                 self.csp.assign(assignment, variable, value, do_count=True)
 
-                censured = self.csp.censure(variable, value)
+                # Remove os demais valores possiveis da variavel atual
+                pruned = self.csp.prune(variable, value)
 
-                if self.look_ahead(self.csp, assignment, variable, value, censured):
+                # Executa o algoritmo de look ahead (se houver)
+                if self.look_ahead(self.csp, assignment, variable, value, pruned):
                     result = self._bt(assignment)
                     if result:
                         return result
-                self.csp.absolve(censured)
+
+                # Adiciona novamente os valores possiveis
+                self.csp.unprune(pruned)
 
         self.csp.unassign(assignment, variable)
 

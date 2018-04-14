@@ -17,12 +17,14 @@ class Config:
     look_ahead = None
     output_as_csv = False
     show_help = False
+    instance_id = -1
 
 
 def parse_args(argv):
-    shortopts = 'f:r:l:a:ch'
+    shortopts = 'i:f:r:l:a:ch'
 
     longopts = [
+        'instance='
         'input-file=',
         'var-selection=',
         'val-selection=',
@@ -46,7 +48,9 @@ def parse_args(argv):
     options, _ = getopt.getopt(sys.argv[1:], shortopts, longopts)
 
     for opt, arg in options:
-        if opt in ('-f', '--input-file'):
+        if opt in ('-i', '--instance'):
+            config.instance_id = int(arg)
+        elif opt in ('-f', '--input-file'):
             config.input_file = arg
         elif opt in ('-c', '--as-csv'):
             config.output_as_csv = True
@@ -132,6 +136,7 @@ Usage:
     python futoshiki.py -f futoshiki_all.txt -r mrvr -l lcv -a fwc -c
 
 Options:
+    -i --instance=ID                    Instance ID
     -f --input-file=FILE                Instances file
     -r --var-selection=[fuv|mrvr|mrvd]  Variable selection algorithm
     -l --val-selection=[odv|rdv|lcv]    Value selection algorithms
@@ -218,6 +223,9 @@ if __name__ == '__main__':
         sys.exit(1)
     
     instances = read_file(config.input_file)
+
+    if config.instance_id != -1:
+        instances = [instances[config.instance_id]]
 
     for variables, domains, constraints, assignment, D, r, n in instances:
         try:

@@ -80,19 +80,19 @@ def lcv(csp, assignment, variable):
 
 # Inferencia
 
-def dont_look_ahead(csp, assignment, variable, value, censured):
+def dont_look_ahead(csp, assignment, variable, value, pruned):
     """ Nenhuma inferencia é aplicada """
     return True
 
-def forward_checking(csp, assignment, variable, value, censured):
+def forward_checking(csp, assignment, variable, value, pruned):
     """ Aplica a inferencia de Checar Adiante """
     for N in csp.variable_neighbors[variable]:
         if N not in assignment:
             for n in csp.domains[N]:
                 if not csp.is_consistent(assignment, N, n):
                     csp.domains[N].remove(n)
-                    if censured is not None:
-                        censured.append((N, n))
+                    if pruned is not None:
+                        pruned.append((N, n))
             if not csp.domains[N]:
                 return False
     return True
