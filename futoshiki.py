@@ -38,6 +38,7 @@ def parse_args(argv):
         'mrvr': mrv_r,
         'mrvd': mrv_d,
         'odv': ordered_domain_values,
+        'idv': inverted_domain_values,
         'rdv': random_domain_values,
         'lcv': lcv,
         'dla': dont_look_ahead,
@@ -60,7 +61,7 @@ def parse_args(argv):
             if arg in ('fuv', 'mrvr', 'mrvd'):
                 config.variable_selection = arg_fn_map[arg]
         elif opt in ('-l', '--val-selection'):
-            if arg in ('odv', 'rdv', 'lcv'):
+            if arg in ('odv', 'idv', 'rdv', 'lcv'):
                 config.value_selection = arg_fn_map[arg]
         elif opt in ('-a', '--look-ahead'):
             if arg in ('dla', 'fwc'):
@@ -151,6 +152,7 @@ Variable Selection Heuristics:
 
 Value Selection Heuristics:
     odv     Ordered-Domain-Values
+    idv     Inverted-Domain-Value
     rdv     Random-Domain-Values
     lcv     Least-Constraining-Values
 
@@ -224,8 +226,8 @@ if __name__ == '__main__':
     
     instances = read_file(config.input_file)
 
-    if config.instance_id != -1:
-        instances = [instances[config.instance_id]]
+    if config.instance_id > 0:
+        instances = [instances[config.instance_id-1]]
 
     for variables, domains, constraints, assignment, D, r, n in instances:
         try:
