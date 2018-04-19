@@ -101,7 +101,7 @@ class Backtracking:
 
     def _can_assign(self):
         return self.csp.max_assigns > -1 and \
-               self.csp.nassigns + 1 < self.csp.max_assigns
+               self.csp.nassigns < self.csp.max_assigns
 
     def _bt(self, assignment):
         if self.is_complete(self.csp, assignment):
