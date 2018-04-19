@@ -241,6 +241,8 @@ if __name__ == '__main__':
 
             nassigns = bt.csp.nassigns
         except KeyboardInterrupt:
+            t = 0
+            nassigns = 0
             output = None
 
         if nassigns == 1000000:
