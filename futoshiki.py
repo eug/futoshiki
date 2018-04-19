@@ -42,7 +42,7 @@ def parse_args(argv):
         'rdv': random_domain_values,
         'lcv': lcv,
         'dla': dont_look_ahead,
-        'fwc': forward_checking
+        'fwc': forward_checking,
     }
 
     config = Config()

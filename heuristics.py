@@ -101,34 +101,3 @@ def forward_checking(csp, assignment, variable, value, pruned):
             if not csp.domains[N]:
                 return False
     return True
-
-def ac3(csp, assignment, variable, value, pruned):
-    """ Aplica a inferencia de Consistencia de Arcos """
-    queue = [(neighbor, variable) for neighbor in csp.variable_neighbors[variable]]
-    
-    while queue:
-        neighbor, variable = queue.pop()
-        if _revise(csp, assignment, neighbor, variable, pruned):
-            if not csp.domains[neighbor]:
-                return False
-            for n in csp.variable_neighbors[neighbor]:
-                if n != variable:
-                    queue.append((n, neighbor))
-    return True
-
-def _revise(csp, assignment, neighbor, variable, pruned):
-    """Return true if we remove a value."""
-    revised = False
-    
-    for x in csp.domains[neighbor]:
-        csp.assign(assignment, neighbor, x)
-        for y in csp.domains[variable]:
-            csp.assign(assignment, variable, y)
-            if not csp.is_consistent(assignment):
-                for p in csp.prune(neighbor, x):
-                    pruned.append(p)
-                revised = True
-            csp.unassign(assignment, variable, y)
-        csp.unassign(assignment, neighbor, x)
-
-    return revised
