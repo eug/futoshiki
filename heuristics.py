@@ -62,6 +62,10 @@ def ordered_domain_values(csp, assignment, variable):
     """ Método: Ordenado (ORD)"""
     return csp.domains[variable]
 
+def inverted_domain_values(csp, assignment, variable):
+    """ Método: Invertido (ORD)"""
+    return sorted(csp.domains[variable], reverse=True)
+
 def random_domain_values(csp, assignment, variable):
     """ Método: Embaralhado (RND) """
     shuffle(csp.domains[variable])
