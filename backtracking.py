@@ -1,5 +1,4 @@
 import sys
-from copy import deepcopy
 
 from constraint import Binary, Unary
 
@@ -10,11 +9,21 @@ class CSP:
         self.domains = domains
         self.constraints = constraints
         self.max_assigns = max_assigns
-
-        # stats
         self.nassigns = 0
-        
+
         # optimisation
+        removals = []
+        for v in self.variables:
+            for c in self.constraints:
+                a, b = c.arg1, c.arg2
+                if isinstance(c, Unary) and v == a:
+                    for d in self.domains[v]:
+                        if d != b:
+                            removals.append((v, d))
+
+        for variable, value in removals:
+            self.domains[variable].remove(value)
+        
         self.variable_constraints = {}
         self.variable_neighbors = {}
 
@@ -28,11 +37,9 @@ class CSP:
                     n = b if v == a else a
                     self.variable_constraints[v].append(c)
                     self.variable_neighbors[v].add(n)
-                elif isinstance(c, Unary) and v == a:
-                    self.variable_constraints[v].append(c)
 
     def assign(self, assignment, variable, value, do_count=False):
-        """ Adiciona uma variável-valor nas atribuições """
+        """ Adiciona uma variável e valor nas atribuições """
         assignment[variable] = value
         if do_count:
             self.nassigns += 1
