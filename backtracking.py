@@ -26,7 +26,6 @@ class CSP:
         
         self.variable_constraints = {}
         self.variable_neighbors = {}
-
         for v in self.variables:
             self.variable_constraints[v] = []
             self.variable_neighbors[v] = set([])
