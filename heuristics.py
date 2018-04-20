@@ -29,32 +29,40 @@ def mrv_r(csp, assignment):
 
     return min(random_unassigned_variables(), key=count_valid_values)
 
+def mrv_f(csp, assignment):
+    """ Heuristica: Minimum-remaining-values
+        Desempate: Primeiro """
+    min_remaining = 10000
+    variable = None
+
+    for v in csp.variables:
+        if v in assignment: continue
+        remaining = sum(csp.is_consistent(assignment, v, d) for d in csp.domains[v])
+
+        if remaining < min_remaining:
+            min_remaining = remaining
+            variable = v
+
+    return variable
 
 def mrv_d(csp, assignment):
     """ Heuristica: Minimum-remaining-values
         Desempate: Maior Grau de Restrição  """
+    max_degree = -1
+    min_remaining = 10000
+    variable = None
 
-    def count_valid_values(variable):
-        """ Conta o numero de valores validos da variavel """
-        return sum(csp.is_consistent(assignment, variable, value) \
-                   for value in csp.domains[variable])
+    for v in csp.variables:
+        if v in assignment: continue
+        degree = len(csp.variable_constraints[v])
+        remaining = sum(csp.is_consistent(assignment, v, d) for d in csp.domains[v])
 
-    def degree_unassigned_variables():
-        """ Retorna variaveis com maior grau de restrição """
-        vars_degree = {}
-        max_degree = 0
+        if (remaining < min_remaining) or (remaining == min_remaining and degree > max_degree):
+            min_remaining = remaining
+            max_degree = degree
+            variable = v
 
-        for var in csp.variables:
-            if var not in assignment:
-                degree = len(csp.variable_constraints[var])
-                vars_degree[var] = degree
-                if degree > max_degree:
-                    max_degree = degree
-
-        return [k for k, v in vars_degree.items() if v == max_degree]
-
-    return min(degree_unassigned_variables(), key=count_valid_values)
-
+    return variable
 
 # Ordem dos valores
 
@@ -92,12 +100,17 @@ def dont_look_ahead(csp, assignment, variable, value, pruned):
 def forward_checking(csp, assignment, variable, value, pruned):
     """ Aplica a inferencia de Checagem Adiante """
     for N in csp.variable_neighbors[variable]:
-        if N not in assignment:
-            for n in csp.domains[N]:
-                if not csp.is_consistent(assignment, N, n):
-                    csp.domains[N].remove(n)
-                    if pruned is not None:
-                        pruned.append((N, n))
-            if not csp.domains[N]:
-                return False
+        if N in assignment: continue
+
+        for n in csp.domains[N]:
+            if not csp.is_consistent(assignment, N, n):
+                pruned.append((N, n))
+
+        for var, val in pruned:
+            if val in csp.domains[var]:
+                csp.domains[var].remove(val)
+
+        if not csp.domains[N]:
+            return False
+
     return True
