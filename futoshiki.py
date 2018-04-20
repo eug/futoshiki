@@ -35,6 +35,7 @@ def parse_args(argv):
 
     arg_fn_map = {
         'fuv': first_unassigned_var,
+        'mrvf': mrv_f,
         'mrvr': mrv_r,
         'mrvd': mrv_d,
         'odv': ordered_domain_values,
@@ -58,7 +59,7 @@ def parse_args(argv):
         elif opt in ('-h', '--help'):
             config.show_help = True
         elif opt in ('-r', '--var-selection'):
-            if arg in ('fuv', 'mrvr', 'mrvd'):
+            if arg in ('fuv', 'mrvf', 'mrvr', 'mrvd'):
                 config.variable_selection = arg_fn_map[arg]
         elif opt in ('-l', '--val-selection'):
             if arg in ('odv', 'idv', 'rdv', 'lcv'):
@@ -147,6 +148,7 @@ Options:
 
 Variable Selection Heuristics:
     fuv     First Unassignment Variable
+    mrvf    Minimum-Remaining-Values (First)
     mrvr    Minimum-Remaining-Values (Random tie breaker)
     mrvd    Minimum-Remaining-Values (Maximum-Restriction-Degree tie breaker)
 
@@ -247,10 +249,6 @@ if __name__ == '__main__':
             nassigns = 0
             output = None
 
-        if nassigns == 1000000:
-            print(n + 1)
-            print('Numero de atribuições excede limite maximo')
-
         if config.output_as_csv:
             if output:
                 result = stringfy_output(D, output)
@@ -259,4 +257,7 @@ if __name__ == '__main__':
                 print ("{},{},{},{},{:.2f},".format(n + 1, D, r, nassigns, t))
         else:
             print(n + 1)
-            print(boardify_output(D, output))
+            if nassigns == 1000000:
+                print('Numero de atribuições excede limite maximo')
+            else:
+                print(boardify_output(D, output))
