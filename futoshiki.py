@@ -36,7 +36,6 @@ def parse_args(argv):
     arg_fn_map = {
         'fuv': first_unassigned_var,
         'mrvf': mrv_f,
-        'mrvr': mrv_r,
         'mrvd': mrv_d,
         'odv': ordered_domain_values,
         'idv': inverted_domain_values,
@@ -148,9 +147,8 @@ Options:
 
 Variable Selection Heuristics:
     fuv     First Unassignment Variable
-    mrvf    Minimum-Remaining-Values (First)
-    mrvr    Minimum-Remaining-Values (Random tie breaker)
-    mrvd    Minimum-Remaining-Values (Maximum-Restriction-Degree tie breaker)
+    mrvf    Minimum-Remaining-Values (tie breaker: First )
+    mrvd    Minimum-Remaining-Values (tie breaker: Maximum-Restriction-Degree)
 
 Value Selection Heuristics:
     odv     Ordered-Domain-Values
@@ -239,11 +237,14 @@ if __name__ == '__main__':
             bt.set_value_selection(config.value_selection)
             bt.set_look_ahead(config.look_ahead)
 
+            # initial_nassigns = len(assignment)
             start = time()
             output = bt.solve(assignment)
             t = time() - start
+            # final_nassigns = len(output)
 
             nassigns = bt.csp.nassigns
+            # print(initial_nassigns, final_nassigns,final_nassigns - initial_nassigns != nassigns)
         except KeyboardInterrupt:
             t = 0
             nassigns = 0

@@ -12,23 +12,6 @@ def first_unassigned_var(csp, assignment):
         if variable not in assignment:
             return variable
 
-def mrv_r(csp, assignment):
-    """ Heuristica: Minimum-remaining-values
-        Desempate: Aleatoriamente """
-
-    def count_valid_values(variable):
-        """ Conta o numero de valores validos da variavel """
-        return sum(csp.is_consistent(assignment, variable, value) \
-                   for value in csp.domains[variable])
-
-    def random_unassigned_variables():
-        """ Retorna variaveis remanescentes aleatoriamente """
-        variables = [v for v in csp.variables if v not in assignment]
-        shuffle(variables)
-        return variables
-
-    return min(random_unassigned_variables(), key=count_valid_values)
-
 def mrv_f(csp, assignment):
     """ Heuristica: Minimum-remaining-values
         Desempate: Primeiro """
@@ -98,17 +81,14 @@ def dont_look_ahead(csp, assignment, variable, value, pruned):
     return True
 
 def forward_checking(csp, assignment, variable, value, pruned):
-    """ Aplica a inferencia de Checagem Adiante """
+    """ Aplica Checagem Adiante """
     for N in csp.variable_neighbors[variable]:
         if N in assignment: continue
 
-        for n in csp.domains[N]:
+        for n in csp.domains[N][:]:
             if not csp.is_consistent(assignment, N, n):
                 pruned.append((N, n))
-
-        for var, val in pruned:
-            if val in csp.domains[var]:
-                csp.domains[var].remove(val)
+                csp.domains[N].remove(n)
 
         if not csp.domains[N]:
             return False
